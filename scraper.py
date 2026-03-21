@@ -35,8 +35,9 @@ def alert(title, price, mileage, link, image):
 
 def run():
     init_db()
-
+    print("Requesting page...")
     r = requests.get(SEARCH_URL, headers=headers, timeout=10)
+    print("Page loaded")
     soup = BeautifulSoup(r.text, "html.parser")
 
     cars = soup.select(".vehicle-card")
