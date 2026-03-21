@@ -2,7 +2,7 @@ import sqlite3
 import requests
 from bs4 import BeautifulSoup
 
-DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1484967992461754568/1eaw9xCrysJ8X7Bz7gv0FaiVpwQE55lIILX58UN1k0i1kJNJlXxvYSgjlNmQzQRI8q7b"
+DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1484970505818734702/-p581hwWVQn9tdFyacio6PBOHlhwQ0gRQm4406s2Y99NQszpgBHtz05YZwLf3oAh-3KO"
 
 DB = "database.db"
 
