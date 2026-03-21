@@ -34,27 +34,45 @@ def alert(title, price, mileage, link, image):
     requests.post(DISCORD_WEBHOOK, json=data)
 
 def run():
+    print("Bot started")
+
     init_db()
-    print("Requesting page...")
-    r = requests.get(SEARCH_URL, headers=headers, timeout=10)
-    print("Page loaded")
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    }
+
+    try:
+        print("Requesting page...")
+        r = requests.get(SEARCH_URL, headers=headers, timeout=10)
+        print("Page loaded")
+    except Exception as e:
+        print("Request failed:", e)
+        return
+
     soup = BeautifulSoup(r.text, "html.parser")
 
-    cars = soup.select(".vehicle-card")
+    cars = soup.select('[data-testid="vehicle-card"]')
+
+    print(f"Found {len(cars)} cars")
 
     for car in cars:
         try:
             link = "https://www.cars.com" + car.select_one("a")["href"]
-            title = car.select_one(".title").text.strip()
-            price = car.select_one(".primary-price").text.strip()
-            mileage = car.select_one(".mileage").text.strip()
+            title = car.select_one('[data-testid="vehicle-card-title"]').text.strip()
+            price = car.select_one('[data-testid="vehicle-card-price"]').text.strip()
+
+            mileage_tag = car.select_one('[data-testid="vehicle-card-mileage"]')
+            mileage = mileage_tag.text.strip() if mileage_tag else "N/A"
+
             image = car.select_one("img")["src"]
 
+            print("Checking:", title)
+
             if not seen(link):
+                print("NEW CAR FOUND")
                 save(link)
                 alert(title, price, mileage, link, image)
 
-        except:
-            continue
-
-run()
+        except Exception as e:
+            print("ERROR:", e)
