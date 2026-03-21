@@ -6,73 +6,93 @@ DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1484970505818734702/-p581hwW
 
 DB = "database.db"
 
-SEARCH_URL = "https://www.cars.com/shopping/results/?makes[]=alfa_romeo&models[]=alfa_romeo-giulia&trim_levels[]=quadrifoglio"
+SEARCH_URLS = [
+    "https://www.cars.com/shopping/results/?makes[]=alfa_romeo&models[]=alfa_romeo-giulia&trim_levels[]=quadrifoglio&maximum_distance=all",
+    "https://www.cargurus.com/Cars/inventorylisting/viewDetailsFilterViewInventoryListing.action?entitySelectingHelper.selectedEntity=d1750&trimNames=Quadrifoglio"
+]
 
 def init_db():
     conn = sqlite3.connect(DB)
-    conn.execute("CREATE TABLE IF NOT EXISTS listings (id TEXT PRIMARY KEY)")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS listings (
+            id TEXT PRIMARY KEY
+        )
+    """)
     conn.close()
 
-def seen(link):
+def seen_before(listing_id):
     conn = sqlite3.connect(DB)
     cur = conn.cursor()
-    cur.execute("SELECT 1 FROM listings WHERE id=?", (link,))
-    exists = cur.fetchone()
+    cur.execute("SELECT 1 FROM listings WHERE id=?", (listing_id,))
+    result = cur.fetchone()
     conn.close()
-    return exists
+    return result is not None
 
-def save(link):
+def save_listing(listing_id):
     conn = sqlite3.connect(DB)
-    conn.execute("INSERT INTO listings (id) VALUES (?)", (link,))
+    conn.execute("INSERT INTO listings (id) VALUES (?)", (listing_id,))
     conn.commit()
     conn.close()
 
-def alert(title, price, mileage, link, image):
+def send_alert(title, price, mileage, link, image):
     data = {
-        "content": f"🚨 {title}\n💰 {price}\n📏 {mileage}\n{link}\n{image}"
+        "embeds": [{
+            "title": "🚨 New Giulia Quadrifoglio Found",
+            "description": f"**{title}**\n💰 {price}\n📏 {mileage}",
+            "url": link,
+            "image": {"url": image}
+        }]
     }
     requests.post(DISCORD_WEBHOOK, json=data)
 
-def run():
-    print("Bot started")
-
-    init_db()
-
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-    }
-
-    try:
-        print("Requesting page...")
-        r = requests.get(SEARCH_URL, headers=headers, timeout=10)
-        print("Page loaded")
-    except Exception as e:
-        print("Request failed:", e)
-        return
-
+def scrape_cars(dotcom_url):
+    headers = {"User-Agent": "Mozilla/5.0"}
+    r = requests.get(dotcom_url, headers=headers)
     soup = BeautifulSoup(r.text, "html.parser")
 
-    cars = soup.select('[data-testid="vehicle-card"]')
+    listings = soup.select(".vehicle-card")
 
-    print(f"Found {len(cars)} cars")
-
-    for car in cars:
+    for car in listings:
         try:
             link = "https://www.cars.com" + car.select_one("a")["href"]
-            title = car.select_one('[data-testid="vehicle-card-title"]').text.strip()
-            price = car.select_one('[data-testid="vehicle-card-price"]').text.strip()
-
-            mileage_tag = car.select_one('[data-testid="vehicle-card-mileage"]')
-            mileage = mileage_tag.text.strip() if mileage_tag else "N/A"
-
+            title = car.select_one(".title").text.strip()
+            price = car.select_one(".primary-price").text.strip()
+            mileage = car.select_one(".mileage").text.strip()
             image = car.select_one("img")["src"]
 
-            print("Checking:", title)
+            if not seen_before(link):
+                save_listing(link)
+                send_alert(title, price, mileage, link, image)
 
-            if not seen(link):
-                print("NEW CAR FOUND")
-                save(link)
-                alert(title, price, mileage, link, image)
+        except Exception:
+            continue
 
-        except Exception as e:
-            print("ERROR:", e)
+def scrape_cargurus(url):
+    headers = {"User-Agent": "Mozilla/5.0"}
+    r = requests.get(url, headers=headers)
+    soup = BeautifulSoup(r.text, "html.parser")
+
+    listings = soup.select(".cg-dealFinder-result-wrap")
+
+    for car in listings:
+        try:
+            link = "https://www.cargurus.com" + car.select_one("a")["href"]
+            title = car.select_one("h4").text.strip()
+            price = car.select_one(".cg-dealFinder-priceAndMoPayment").text.strip()
+            mileage = car.select_one(".cg-dealFinder-mileage").text.strip()
+            image = car.select_one("img")["src"]
+
+            if not seen_before(link):
+                save_listing(link)
+                send_alert(title, price, mileage, link, image)
+
+        except Exception:
+            continue
+
+def run():
+    init_db()
+    scrape_cars(SEARCH_URLS[0])
+    scrape_cargurus(SEARCH_URLS[1])
+
+if __name__ == "__main__":
+    run()
