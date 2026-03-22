@@ -1,2 +1,35 @@
-- name: Install Playwright browsers
-  run: playwright install chromium
+name: Giulia Bot
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"   # runs every 15 minutes
+  workflow_dispatch:         # allows manual run
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Pull your repo code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2. Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 4. Install Playwright browsers (CRITICAL STEP)
+      - name: Install Playwright browsers
+        run: playwright install chromium
+
+      # 5. Run your bot
+      - name: Run scraper
+        run: python scraper.py
