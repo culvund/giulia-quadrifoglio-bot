@@ -228,13 +228,12 @@ def scrape_bat():
 # ---------- MAIN ----------
 
 def run():
-    print("Starting bot...")
-    init_db()
+    import requests
 
-    scrape_cars()
-    scrape_bat()
+    print("Sending test message...")
 
-    print("Done.")
+    r = requests.post(DISCORD_WEBHOOK, json={
+        "content": "🚨 BOT TEST — if you see this, Discord works 🚨"
+    })
 
-if __name__ == "__main__":
-    run()
+    print("Status:", r.status_code)
