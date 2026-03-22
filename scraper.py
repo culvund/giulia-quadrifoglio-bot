@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import hashlib
 
-DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1484970505818734702/-p581hwWVQn9tdFyacio6PBOHlhwQ0gRQm4406s2Y99NQszpgBHtz05YZwLf3oAh-3KO"
+DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1485336699482542232/XDaPfTe8xnPV7Jq7kbpV9auCmEPqukHoowL3vpvSZYguQU48mfiINUmziSfaka8v66PW"
 
 DB = "cars.db"
 
